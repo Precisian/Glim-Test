@@ -1,0 +1,20 @@
+#include <string>
+#include <vector>
+
+using namespace std;
+
+int solution(int n, int k) {
+    int answer = 0, service = 0;
+    
+    // 갯수 입력에 따른 가격 산정
+    int price_lamb = 12000;
+    int price_drink = 2000;
+    
+    // 음식 10개에 음료수 1개 서비스
+    if(n >= 10){
+        service = n / 10;
+    }
+    
+    answer = (n * price_lamb) + ((k - service) * price_drink);
+    return answer;
+}
