@@ -213,9 +213,12 @@ void CAssignment1Dlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 
 void CAssignment1Dlg::OnBnClickedBnRandom()
 {
-	// 별도 스레드에서 구동, 랜덤하게 UI 변경됨
-	this->m_pThread = AfxBeginThread(this->ThreadRepeat, this);
-	this->m_pThreadWork = THREAD_RUNNING;		// 스레드의 동작 상태 갱신
+	// 반복 메서드가 동작하지 않는 경우에만 활성화
+	if (this->m_pThreadWork == THREAD_STOP) {
+		// 별도 스레드에서 구동, 랜덤하게 UI 변경됨
+		this->m_pThread = AfxBeginThread(this->ThreadRepeat, this);
+		this->m_pThreadWork = THREAD_RUNNING;		// 스레드의 동작 상태 갱신
+	}
 }
 
 UINT CAssignment1Dlg::ThreadRepeat(LPVOID LpData)
