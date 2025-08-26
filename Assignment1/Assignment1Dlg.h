@@ -43,13 +43,11 @@ private:
 	int m_nDialogMinSize_Height;
 
 	// 픽쳐컨트롤 인스턴스
-	CPictureControl cPicturControl;
+	CPictureControl m_cPicturControl;
 
 	// 스레드
 	CWinThread* m_pThread;
-	ThreadWorkingType m_pThreadWork;
-
-
+	ThreadWorkingType m_iThreadWork;
 
 protected:
 	HICON m_hIcon;
@@ -69,5 +67,5 @@ public:
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnBnClickedBnRandom();
 
-	static UINT ThreadRepeat(LPVOID LpData);
+	static UINT ThreadRepeat(LPVOID LpData);		// 스레드 실행 메서드
 };

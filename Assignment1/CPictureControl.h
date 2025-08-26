@@ -10,18 +10,15 @@
 
 using namespace std;
 
-// CStatic을 상속받도록 변경
 class CPictureControl : public CStatic
 {
-	// CStatic에 맞게 매크로 변경
 	DECLARE_DYNAMIC(CPictureControl)
 
 public:
-	// 생성자 변경: CStatic은 매개변수 없는 기본 생성자를 사용합니다.
 	CPictureControl();
 	virtual ~CPictureControl();
 
-	void initImage(int nRadius, int nStroke, bool flag_init = false);
+	void InitImage(int nRadius, int nStroke, bool bFlagInit = false);
 	void DrawAll();
 	bool DrawRandom();
 
@@ -40,16 +37,16 @@ private:
 	int m_nControlSize_Width;
 	int m_nControlSize_Height;
 
-	bool flag_move;			// 작은 원 클릭 시 움직임 활성화 플래그
+	bool m_bFlagMove;			// 작은 원 클릭 시 움직임 활성화 플래그
 	int m_nNumIdx;			// 클릭된 원의 인덱스 확인
 
 	// 메서드
-	void clearImage(bool flag_init = false);
-	bool GetPointInCircle(CPoint cursor, CPoint point);		// 클릭한 좌표가 생성된 원 내부에 존재하는지 확인
-	bool GetPointNearCircle(CPoint cursor, CPoint point);		// 클릭한 좌표가 생성된 원 주변에 존재하는지 확인
+	void ClearImage(bool bFlagInit = false);
+	bool GetPointInCircle(CPoint cPointCursor, CPoint cPointTarget);		// 클릭한 좌표가 생성된 원 내부에 존재하는지 확인
+	bool GetPointNearCircle(CPoint cPointCursor, CPoint cPointTarget);		// 클릭한 좌표가 생성된 원 주변에 존재하는지 확인
 
-	void drawCircle(CPoint point, int nRadius = 0);
-	void draw3PointsCircle();
+	void DrawCircle(CPoint cPointCursor, int nRadius = 0);					// 입력된 좌표를 중점으로 원 생성, 반경 값에 따라 솔리드인지, 엣지인지 구분하여 생성
+	void Draw3PointsCircle();												// 3점에 대해서 중심 좌표 획득
 
 public:
 	// OnCreate 메시지 핸들러 추가

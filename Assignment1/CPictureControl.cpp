@@ -5,13 +5,11 @@
 #include "CPictureControl.h"
 
 
-// CPictureControl
-// CDialogEx 대신 CStatic을 상속받습니다.
 IMPLEMENT_DYNAMIC(CPictureControl, CStatic)
 
 CPictureControl::CPictureControl()
 {
-	this->flag_move = false;
+	this->m_bFlagMove = false;
 	this->m_nStroke = 0;
 	this->m_nRadius = 0;
 	this->m_nNumIdx = 0;
@@ -35,7 +33,7 @@ END_MESSAGE_MAP()
 // CPictureControl 메시지 처리기
 void CPictureControl::OnPaint()
 {
-	CPaintDC dc(this); // device context for painting
+	CPaintDC dc(this); 
 
 	// 이미지를 화면에 그리기
 	CRect rect;
@@ -61,27 +59,27 @@ int CPictureControl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 }
 
 
-bool CPictureControl::GetPointInCircle(CPoint cursor, CPoint point) {
+bool CPictureControl::GetPointInCircle(CPoint cPointCursor, CPoint cPointTarget) {
 	// 입력한 점을 기준으로 반경 내부에 커서가 존재할 시 true 반환
-	double dx = cursor.x - point.x;
-	double dy = cursor.y - point.y;
+	double dx = cPointCursor.x - cPointTarget.x;
+	double dy = cPointCursor.y - cPointTarget.y;
 	double dist = sqrt((dx * dx) + (dy * dy));
 
 	if (dist <= this->m_nRadius) return true;
 	else return false;
 }
 
-bool CPictureControl::GetPointNearCircle(CPoint cursor, CPoint point) {
+bool CPictureControl::GetPointNearCircle(CPoint cPointCursor, CPoint cPointTarget) {
 	// 입력한 점을 기준으로 생성된 원의 반경범위에 존재할 시 true 반환
-	double dx = cursor.x - point.x;
-	double dy = cursor.y - point.y;
+	double dx = cPointCursor.x - cPointTarget.x;
+	double dy = cPointCursor.y - cPointTarget.y;
 	double dist = sqrt((dx * dx) + (dy * dy));
 
 	if (this->m_nRadius < dist && dist <= this->m_nRadius * 2) return true;
 	else return false;
 }
 
-void CPictureControl::initImage(int nRadius, int nStroke, bool flag_init) {
+void CPictureControl::InitImage(int nRadius, int nStroke, bool bFlagInit) {
 	this->m_nRadius = nRadius;
 	this->m_nStroke = nStroke;
 
@@ -101,42 +99,41 @@ void CPictureControl::initImage(int nRadius, int nStroke, bool flag_init) {
 	this->m_image.Create(rect.Width(), -rect.Height(), INIT_BPP);
 
 	// 컬러 팔레트 설정
-	RGBQUAD pPalette[256];
-	pPalette[0] = { 0, 0, 0, 0 };
-	pPalette[255] = { 255, 255, 255, 0 }; // 흰색
+	RGBQUAD pPalette[256] = { 0 };						// 컬러팔레트 생성, 검은색으로 초기화
+	pPalette[255] = { 255, 255, 255, 0 };				// 흰색
 	this->m_image.SetColorTable(0, 256, pPalette);
 
-	// 회색 톤 팔레트 생성 (안티 앨리어싱용)
+	// 팔레트의 중간 값 설정(안티 앨리어싱용)
 	for (int i = 1; i < 255; i++) {
 		pPalette[i] = { (BYTE)i, (BYTE)i, (BYTE)i, 0 };
 	}
 
 	// 픽셀 초기화
-	this->clearImage(flag_init);
+	this->ClearImage(bFlagInit);
 
 	this->Invalidate();
 }
 
-void CPictureControl::clearImage(bool flag_init) {
+void CPictureControl::ClearImage(bool bFlagInit) {
 	// 점 목록 초기화
-	if(flag_init) this->m_vLocPoint.clear();
+	if(bFlagInit) this->m_vLocPoint.clear();
 
-	// m_image를 다시 흰색으로 초기화
+	// m_image를 흰색으로 초기화
 	unsigned char* fm = (unsigned char*)this->m_image.GetBits();
 	int nPitch = this->m_image.GetPitch();
 	memset(fm, 0xff, nPitch * this->m_image.GetHeight());
 }
 
 void CPictureControl::DrawAll() {
-	this->clearImage();
+	this->ClearImage();
 
 	// 원 그리기
 	for (CPoint point : this->m_vLocPoint) {
-		this->drawCircle(point);
+		this->DrawCircle(point);
 	}
 
 	if (this->m_vLocPoint.size() == MAX_CIRCLE_EXIST) {
-		draw3PointsCircle();
+		Draw3PointsCircle();
 	}
 
 	this->Invalidate();
@@ -145,8 +142,8 @@ void CPictureControl::DrawAll() {
 bool CPictureControl::DrawRandom() {
 	// 3점이 존재할 때만 사용, 실행되지 않으면 false로 반환하기
 	if (this->m_vLocPoint.size() >= MAX_CIRCLE_EXIST) {
-		//this->m_vLocPoint.clear();		// 3점벡터 초기화
-		this->initImage(this->m_nRadius, this->m_nStroke, true);
+		// 현재 화면에 출력중인 3점 벡터 초기화
+		this->m_vLocPoint.clear();
 
 		random_device rd;
 		mt19937 gen(rd());
@@ -167,15 +164,16 @@ bool CPictureControl::DrawRandom() {
 			this->m_vLocPoint.push_back(point);
 		}
 
+		// 랜덤하게 생성된 3점 좌표로 전체 그리기(3개의 작은 원, 정원)
 		this->DrawAll();
 		return true;
 	}
 	return false;
 }
 
-void CPictureControl::drawCircle(CPoint point, int nRadius) {
+void CPictureControl::DrawCircle(CPoint cPointCursor, int nRadius) {
 	// 정원을 그릴지, 작은 원을 그릴지 결정
-	bool flag_center = false;
+	bool bFlagCenter = false;
 	double offset = 0;
 	if (nRadius == 0) {
 		// 작은 원을 그리기 위한 전역 반지름 입력
@@ -184,11 +182,11 @@ void CPictureControl::drawCircle(CPoint point, int nRadius) {
 	}
 	else {
 		// 정원 그리는 플래그 활성화
-		flag_center = true;
+		bFlagCenter = true;
 	}
 
-	const int nCenterX = point.x;
-	const int nCenterY = point.y;
+	const int nCenterX = cPointCursor.x;
+	const int nCenterY = cPointCursor.y;
 	const int nRadiusSq = pow(nRadius, 2);
 
 	// 이미지 너비, 높이 확보
@@ -206,10 +204,10 @@ void CPictureControl::drawCircle(CPoint point, int nRadius) {
 
 	//  원형을 그리기 위한 반복문 순환
 	for (int j = nStartY; j <= nEndY; j++) {
-		// 다른 주소 참조를 막기 위한 예외처리
+		// 이미지 객체 범위 이내로만 작동되게 함
 		if (j >= nHeight || j < 0) continue;
 		for (int i = nStartX; i <= nEndX; i++) {
-			// 다른 주소 참조를 막기 위한 예외처리
+			// 이미지 객체 범위 이내로만 작동되게 함
 			if (i >= nWidth || i < 0) continue;
 
 			// 안티앨리어싱을 위하여 픽셀 중앙으로 오프셋
@@ -219,8 +217,7 @@ void CPictureControl::drawCircle(CPoint point, int nRadius) {
 			double dist = sqrt(distSq);
 
 			// 플래그로 구분, 솔리드, 엣지로만 생성
-			if (flag_center) {
-				// 엣지 생성
+			if (bFlagCenter) {
 				// nStroke의 절반을 안쪽, 나머지 절반을 바깥쪽에 할당
 				const int innerRadius = static_cast<int>(nRadius - this->m_nStroke * 0.5);
 				const int outerRadius = static_cast<int>(nRadius + this->m_nStroke * 0.5);
@@ -241,20 +238,20 @@ void CPictureControl::drawCircle(CPoint point, int nRadius) {
 }
 
 // 3점에 대해 존재하는 원을 작성
-void CPictureControl::draw3PointsCircle() {
+void CPictureControl::Draw3PointsCircle() {
 	// 중심점 변수 선언
-	const vector<CPoint> points = this->m_vLocPoint;
-	CPoint pntCenter;
+	const vector<CPoint> vPoints = this->m_vLocPoint;
+	CPoint cPointCenter;
 
-	// A - B
-	double a1 = points[1].x - points[0].x;
-	double b1 = points[1].y - points[0].y;
-	double c1 = ((pow(points[0].x, 2) - pow(points[1].x, 2)) + (pow(points[0].y, 2) - pow(points[1].y, 2))) / 2.0;
+	// 임의의 2점에 대하여 원에 대한 연립방정식 원소 대체 : points[0] - points[1]
+	double a1 = vPoints[1].x - vPoints[0].x;
+	double b1 = vPoints[1].y - vPoints[0].y;
+	double c1 = ((pow(vPoints[0].x, 2) - pow(vPoints[1].x, 2)) + (pow(vPoints[0].y, 2) - pow(vPoints[1].y, 2))) / 2.0;
 
-	// B - C
-	double a2 = points[2].x - points[1].x;
-	double b2 = points[2].y - points[1].y;
-	double c2 = ((pow(points[1].x, 2) - pow(points[2].x, 2)) + (pow(points[1].y, 2) - pow(points[2].y, 2))) / 2.0;
+	// 임의의 2점에 대하여 원에 대한 연립방정식 원소 대체 : points[1] - points[2]
+	double a2 = vPoints[2].x - vPoints[1].x;
+	double b2 = vPoints[2].y - vPoints[1].y;
+	double c2 = ((pow(vPoints[1].x, 2) - pow(vPoints[2].x, 2)) + (pow(vPoints[1].y, 2) - pow(vPoints[2].y, 2))) / 2.0;
 
 	// 해가 존재하는지 확인, double의 불확실성에 의한 오차범위 고려(0.000001)
 	double det = a1 * b2 - a2 * b1;
@@ -264,22 +261,22 @@ void CPictureControl::draw3PointsCircle() {
 	}
 
 	// 중심점 구하기
-	pntCenter.x = -(c1 * b2 - c2 * b1) / det;
-	pntCenter.y = -(a1 * c2 - a2 * c1) / det;
+	cPointCenter.x = -(c1 * b2 - c2 * b1) / det;
+	cPointCenter.y = -(a1 * c2 - a2 * c1) / det;
 
 	// 반지름 구하기 
-	double r1 = sqrt(pow(points[0].x - pntCenter.x, 2) + pow(points[0].y - pntCenter.y, 2));
-	double r2 = sqrt(pow(points[1].x - pntCenter.x, 2) + pow(points[1].y - pntCenter.y, 2));
-	double r3 = sqrt(pow(points[2].x - pntCenter.x, 2) + pow(points[2].y - pntCenter.y, 2));
+	double r1 = sqrt(pow(vPoints[0].x - cPointCenter.x, 2) + pow(vPoints[0].y - cPointCenter.y, 2));
+	double r2 = sqrt(pow(vPoints[1].x - cPointCenter.x, 2) + pow(vPoints[1].y - cPointCenter.y, 2));
+	double r3 = sqrt(pow(vPoints[2].x - cPointCenter.x, 2) + pow(vPoints[2].y - cPointCenter.y, 2));
 	int nRadius = static_cast<int>(round((r1 + r2 + r3) / 3.0)); // 평균값 반올림하여 정수형으로 변환
 
-	this->drawCircle(pntCenter, nRadius);
+	this->DrawCircle(cPointCenter, nRadius);
 }
 
 void CPictureControl::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// 이동 가능한 상태라면 해당 점을 이동
-	if (this->flag_move) {
+	if (this->m_bFlagMove) {
 		GetCursorPos(&point);
 		ScreenToClient(&point);
 		// 클릭된 원의 인덱스 위치의 좌표 변경
@@ -304,36 +301,35 @@ void CPictureControl::OnLButtonDown(UINT nFlags, CPoint point)
 
 	// 픽쳐컨트롤 영역 내에 마우스 좌표가 존재 시
 	if (rect.PtInRect(pos)) {
-		bool flag_enable = true;
+		bool bFlagEnable = true;
 		for (int i = 0; i < this->m_vLocPoint.size(); i++) {
 			//현재 생성된 작은 원과의 겹치지 않게 범위 확인 및 패스
 			if (this->GetPointNearCircle(pos, m_vLocPoint[i])) {
-				flag_enable = false;
+				bFlagEnable = false;
 				break;
 			}
 			//만약 현재 클릭한 커서가 작은 원 안에 있는 경우 이동 플래그 활성화
 			if (this->GetPointInCircle(pos, m_vLocPoint[i])) {
-				flag_enable = false;
-				this->flag_move = true;
+				bFlagEnable = false;
+				this->m_bFlagMove = true;
 				this->m_nNumIdx = i;
 				break;
 			}
 		}
 
-		//cout << "클릭된 좌표 : " << pos.x << ", " << pos.y << endl;
-
 		// 벡터에 현재 포인트 입력
-		if (flag_enable && this->m_vLocPoint.size() < MAX_CIRCLE_EXIST) {
+		if (bFlagEnable && this->m_vLocPoint.size() < MAX_CIRCLE_EXIST) {
 			this->m_vLocPoint.push_back(pos);
 			this->DrawAll();
 		}
 	}
+
 	CStatic::OnLButtonDown(nFlags, point);
 }
 
 void CPictureControl::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	this->flag_move = false;
+	this->m_bFlagMove = false;
 
 	CStatic::OnLButtonUp(nFlags, point);
 }

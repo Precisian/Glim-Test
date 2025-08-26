@@ -10,11 +10,8 @@
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
-#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
 #endif
 
-
-// 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
 
 class CAboutDlg : public CDialogEx
 {
@@ -27,7 +24,7 @@ public:
 #endif
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 지원입니다.
+	virtual void DoDataExchange(CDataExchange* pDX);    
 
 // 구현입니다.
 protected:
@@ -62,7 +59,7 @@ void CAssignment1Dlg::DoDataExchange(CDataExchange* pDX)
 	// DDX 바인딩 코드 추가
 	DDX_Text(pDX, IDC_EDIT_RADIUS, this->m_nRadius);
 	DDX_Text(pDX, IDC_EDIT_STROKE, this->m_nStroke);
-	DDX_Control(pDX, IDC_STATIC_PICTURE, this->cPicturControl);
+	DDX_Control(pDX, IDC_STATIC_PICTURE, this->m_cPicturControl);
 }
 
 BEGIN_MESSAGE_MAP(CAssignment1Dlg, CDialogEx)
@@ -101,7 +98,7 @@ BOOL CAssignment1Dlg::OnInitDialog()
 		}
 	}
 
-	// 프레임워크가 자동으로 실행
+	// 컨트롤 생성 완료 후 실행
 	SetIcon(m_hIcon, TRUE);			// 큰 아이콘을 설정합니다.
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
@@ -116,12 +113,12 @@ BOOL CAssignment1Dlg::OnInitDialog()
 	this->m_nDialogMinSize_Height = rect.Height();
 
 	// 픽쳐컨트롤 인스턴스 생성
-	this->cPicturControl.initImage(this->m_nRadius, this->m_nStroke);
+	this->m_cPicturControl.InitImage(this->m_nRadius, this->m_nStroke);
 
 	// 초기값을 컨트롤에 적용
 	UpdateData(false);	
 
-	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
+	return TRUE;  
 }
 
 void CAssignment1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -136,10 +133,6 @@ void CAssignment1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
 		CDialogEx::OnSysCommand(nID, lParam);
 	}
 }
-
-// 대화 상자에 최소화 단추를 추가할 경우 아이콘을 그리려면
-//  아래 코드가 필요합니다.  문서/뷰 모델을 사용하는 MFC 애플리케이션의 경우에는
-//  프레임워크에서 이 작업을 자동으로 수행합니다.
 
 void CAssignment1Dlg::OnPaint()
 {
@@ -167,7 +160,7 @@ void CAssignment1Dlg::OnPaint()
 }
 
 // 사용자가 최소화된 창을 끄는 동안에 커서가 표시되도록 시스템에서
-//  이 함수를 호출합니다.
+// 이 함수를 호출합니다.
 HCURSOR CAssignment1Dlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
@@ -175,23 +168,24 @@ HCURSOR CAssignment1Dlg::OnQueryDragIcon()
 
 void CAssignment1Dlg::OnBnClickedBN_INIT()
 {
-	// 좌표 관리 벡터 초기화
-	this->cPicturControl.initImage(this->m_nRadius, this->m_nStroke, true);
+	// 이미지 초기화
+	this->m_cPicturControl.InitImage(this->m_nRadius, this->m_nStroke, true);
 }
 
 void CAssignment1Dlg::OnBnClickedBnModify()
 {
 	// 반경 크기, 테두리 굵기에 대하여 Image 재생성
+	// UI의 컨트롤에서 값을 수신
 	UpdateData();
-	this->cPicturControl.initImage(this->m_nRadius, this->m_nStroke);
-	this->cPicturControl.DrawAll();
+	this->m_cPicturControl.InitImage(this->m_nRadius, this->m_nStroke);
+	this->m_cPicturControl.DrawAll();
 }
 
 void CAssignment1Dlg::OnExitSizeMove()
 {
 	// 이미지 재생성
-	this->cPicturControl.initImage(this->m_nRadius, this->m_nStroke);
-	this->cPicturControl.DrawAll();
+	this->m_cPicturControl.InitImage(this->m_nRadius, this->m_nStroke);
+	this->m_cPicturControl.DrawAll();
 
 	CDialogEx::OnExitSizeMove();
 }
@@ -203,9 +197,9 @@ void CAssignment1Dlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 	lpMMI->ptMinTrackSize.y = this->m_nDialogMinSize_Height;
 
 	// 창의 크기가 변화하는 동안 실시간으로 반영
-	if (this->cPicturControl && this->m_pThreadWork == THREAD_STOP) {
-		this->cPicturControl.initImage(this->m_nRadius, this->m_nStroke);
-		this->cPicturControl.DrawAll();
+	if (this->m_cPicturControl && this->m_iThreadWork == THREAD_STOP) {
+		this->m_cPicturControl.InitImage(this->m_nRadius, this->m_nStroke);
+		this->m_cPicturControl.DrawAll();
 	}	
 	
 	CDialogEx::OnGetMinMaxInfo(lpMMI);
@@ -214,10 +208,10 @@ void CAssignment1Dlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 void CAssignment1Dlg::OnBnClickedBnRandom()
 {
 	// 반복 메서드가 동작하지 않는 경우에만 활성화
-	if (this->m_pThreadWork == THREAD_STOP) {
+	if (this->m_iThreadWork == THREAD_STOP) {
 		// 별도 스레드에서 구동, 랜덤하게 UI 변경됨
 		this->m_pThread = AfxBeginThread(this->ThreadRepeat, this);
-		this->m_pThreadWork = THREAD_RUNNING;		// 스레드의 동작 상태 갱신
+		this->m_iThreadWork = THREAD_RUNNING;		// 스레드의 동작 상태 갱신
 	}
 }
 
@@ -231,15 +225,15 @@ UINT CAssignment1Dlg::ThreadRepeat(LPVOID LpData)
 	while (cnt < RANDOM_MAX)
 	{
 		// 랜덤으로 구동한게 수행했다면, cnt 증가와 딜레이 실행
-		if (pDlg->cPicturControl.DrawRandom()) {
+		if (pDlg->m_cPicturControl.DrawRandom()) {
 			cnt++;
-			Sleep(RANDOM_INTERVAL);
 		}
 		// 실행이 진행되지 않으면 종료
 		else break;
+		Sleep(RANDOM_INTERVAL);
 	}
 
-	// 스레드의 정지 상태 갱신
-	pDlg->m_pThreadWork = THREAD_STOP;
+	// 스레드의 상태 갱신
+	pDlg->m_iThreadWork = THREAD_STOP;
 	return 0;
 }
